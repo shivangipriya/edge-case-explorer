@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Edge Case Explorer</title>
+<style>
+  :root {
+    --page: #fafafa;
+    --card: #ffffff;
+    --ink: #1a1a1a;
+    --ink-2: #5c5c5c;
+    --hairline: #e3e3e3;
+    --warn-bg: #fff7e6;
+    --warn-border: #f0d9a8;
+    --note-bg: #eef5ff;
+    --note-border: #c3d9f5;
+    --accent: #1a1a1a;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; min-height: 100%; }
+  body {
+    background: var(--page);
+    color: var(--ink);
+    font: 16px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    padding: 24px 16px 64px;
+  }
+  .card { max-width: 720px; margin: 0 auto; background: var(--card); border: 1px solid var(--hairline); border-radius: 12px; padding: 28px 24px 32px; }
+  h1 { font-size: 24px; margin: 0 0 4px; }
+  h2 { font-size: 17px; margin: 0 0 10px; }
+  .fact-line { color: var(--ink-2); font-size: 14px; margin: 0 0 12px; }
+  .intro { color: var(--ink-2); margin: 0 0 20px; }
+  .group { border-top: 1px solid var(--hairline); padding: 20px 0 4px; margin-top: 20px; }
+  .group:first-of-type { border-top: 0; margin-top: 0; padding-top: 0; }
+  .group-label { font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-2); margin: 0 0 6px; }
+  label { display: block; font-size: 14px; color: var(--ink-2); margin: 12px 0 4px; }
+  input[type="text"], textarea {
+    width: 100%; border: 1px solid var(--hairline); border-radius: 6px; padding: 10px 12px;
+    font: inherit; color: var(--ink); background: var(--page);
+  }
+  textarea { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px; resize: vertical; }
+  button {
+    font: inherit; border-radius: 6px; border: 1px solid var(--accent); padding: 9px 16px;
+    background: var(--accent); color: #fff; cursor: pointer; margin-top: 12px;
+  }
+  button:disabled { opacity: 0.45; cursor: not-allowed; }
+  button.ghost { background: transparent; color: var(--ink); border-color: var(--hairline); }
+  button.secondary { background: transparent; color: var(--ink); border-color: var(--ink); }
+  button.compact { padding: 4px 10px; font-size: 13px; margin-top: 6px; }
+  .caption { font-size: 13px; color: var(--ink-2); margin: 6px 0 0; }
+  .callout { border-radius: 8px; padding: 12px 14px; margin: 10px 0; font-size: 14.5px; }
+  .callout.note { background: var(--note-bg); border: 1px solid var(--note-border); }
+  .callout .callout-title { font-weight: 600; display: block; margin-bottom: 2px; }
+  ul { margin: 8px 0; padding-left: 22px; }
+  li { margin: 4px 0; }
+  .case { border-top: 1px solid var(--hairline); padding: 12px 0 14px; }
+  .case.off { opacity: 0.45; }
+  .case-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
+  .case-text { flex: 1 1 auto; min-width: 0; }
+  .case-cat { flex: 0 0 auto; margin-left: 12px; padding-left: 12px; border-left: 1px solid var(--hairline); color: var(--ink-2); font-size: 13px; white-space: nowrap; }
+  .choices { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+  .choices .choice {
+    border: 1px solid var(--hairline); border-radius: 999px; padding: 5px 14px; font-size: 14px;
+    background: transparent; color: var(--ink); cursor: pointer; margin-top: 0;
+  }
+  .choices .choice.selected { background: var(--ink); color: #fff; border-color: var(--ink); }
+  .closing { margin-top: 28px; padding-top: 16px; border-top: 1px solid var(--hairline); color: var(--ink-2); font-size: 13.5px; }
+  .hidden { display: none; }
+</style>
+</head>
+<body>
+<div class="card">
+
+  <!-- Stage: paste -->
+  <div id="stage-paste">
+    <h1>Edge Case Explorer</h1>
+    <p class="fact-line">Free. Nothing uploaded.</p>
+    <p class="intro">Describe a feature you are building or testing. Get a structured checklist of edge cases worth thinking about, universal ones plus cases matched to the kind of feature it is. Mark what you have considered and copy the record. The checklist is a starting point for thinking, not a guarantee of coverage. Nothing you type leaves this page.</p>
+
+    <div class="group">
+      <p class="group-label">Step 1</p>
+      <h2>Describe the feature</h2>
+      <label for="feature-name">Feature name (optional)</label>
+      <input type="text" id="feature-name">
+      <label for="feature-paste">What does the feature do?</label>
+      <textarea id="feature-paste" rows="6" placeholder="Example: users can upload a profile photo, crop it, and save. Or: checkout with card payment and promo codes."></textarea>
+      <button id="btn-analyse" disabled>Explore edge cases</button>
+      <p class="caption hidden" id="paste-hint">Describe the feature a little more first.</p>
+    </div>
+
+    <div class="group" id="honesty-paste"></div>
+    <p class="closing">Your description is held only in this page while it is open. Exploring another feature clears it.</p>
+  </div>
+
+  <!-- Stage: review -->
+  <div id="stage-review" class="hidden">
+    <h1 id="review-title">Edge Case Explorer</h1>
+    <p class="fact-line" id="review-count"></p>
+    <p class="intro">Cases tagged Universal apply to almost any feature. Other tags come from keywords in your description, so read them as suggestions and remove what does not fit. Add what the list missed: every product has cases no generic list can know.</p>
+
+    <div class="group hidden" id="matched-group">
+      <p class="group-label">Matched feature types</p>
+      <div id="matched-list"></div>
+      <p class="caption">Matching is keyword-based. A missed match means the list stayed generic, not that your feature has no special cases.</p>
+    </div>
+
+    <div class="group">
+      <p class="group-label" id="cases-label">Step 2: edge case checklist</p>
+      <div id="case-list"></div>
+      <label for="new-item">Add a case the list missed (optional)</label>
+      <input type="text" id="new-item">
+      <button class="secondary compact" id="btn-add">Add</button>
+    </div>
+
+    <div class="group">
+      <p class="group-label">Step 3: your record</p>
+      <p id="record-empty">Mark at least one case above and your record appears here.</p>
+      <div id="record-body" class="hidden">
+        <div id="record-groups"></div>
+        <p class="caption" id="record-unmarked"></p>
+        <p class="caption">No total, no coverage score. How complete this list is remains the tester's judgement.</p>
+        <button class="secondary" id="btn-copy">Copy this record</button>
+        <p class="caption hidden" id="copy-done">Copied.</p>
+      </div>
+    </div>
+
+    <button class="ghost" id="btn-reset">Explore another feature</button>
+
+    <div class="group" id="honesty-review"></div>
+    <p class="closing">Your description and marks are held only in this page while it is open. Nothing is saved or sent.</p>
+  </div>
+
+</div>
+
+<script>
+// ===PARSE-BEGIN===
+const UNIVERSAL = [
+    { cat: 'Universal', text: 'Empty input or state: nothing entered, no data yet, or data cleared' },
+    { cat: 'Universal', text: 'Maximum limits: longest allowed text, largest count, biggest size' },
+    { cat: 'Universal', text: 'Unusual text: special characters, emoji, very long words, mixed scripts' },
+    { cat: 'Universal', text: 'Error handling: what the user sees when the action fails' },
+    { cat: 'Universal', text: 'Slow or lost network: action started on a flaky connection' },
+    { cat: 'Universal', text: 'Double action: button tapped twice, same request sent again' },
+    { cat: 'Universal', text: 'Interruption: user leaves and comes back mid-flow' },
+    { cat: 'Universal', text: 'Small screen and keyboard-only use' }
+];
+
+const FEATURE_CASES = [
+    { tag: 'login', match: /\b(log ?in|sign ?in|auth|password|sign ?up|register|sso|otp)\b/i, cases: [
+        'Wrong password repeatedly: lockout, captcha, or warning before it',
+        'Password reset link used after it expired, or used twice',
+        'Account exists with email login, user tries sign-up again with the same email',
+        'Session expires while the user is mid-task'
+    ]},
+    { tag: 'payment', match: /\b(pay(ment)?|checkout|card|upi|refund|invoice|price|pricing|subscription|promo|coupon|discount)\b/i, cases: [
+        'Card declined, then retried: no duplicate charge',
+        'Promo code applied, then the cart changes so the code no longer qualifies',
+        'Refund or cancellation after partial use',
+        'Currency, rounding, and tax shown the same way at every step'
+    ]},
+    { tag: 'upload', match: /\b(upload|import|attach|attachment|photo|image|video)\b/i, cases: [
+        'File larger than the limit, wrong type, or corrupted',
+        'Same file uploaded twice',
+        'Upload cancelled or connection lost midway',
+        'Preview of the uploaded item before it is saved'
+    ]},
+    { tag: 'search', match: /\b(search|filter|sort|browse|find)\b/i, cases: [
+        'No results, exactly one result, and thousands of results',
+        'Filters combined until nothing matches',
+        'Special characters or very long queries',
+        'Sorting when many items tie on the sort value'
+    ]},
+    { tag: 'form', match: /\b(form|survey|onboarding|application|apply|questionnaire|checkout form|profile)\b/i, cases: [
+        'Required field skipped or filled with only spaces',
+        'Browser back button or refresh with a half-filled form',
+        'Autofill putting the right value in the wrong field',
+        'Validation messages that say what to fix, not just that something is wrong'
+    ]},
+    { tag: 'messaging', match: /\b(email|notification|message|chat|invite|reminder|sms|whatsapp)\b/i, cases: [
+        'Delivery failure: invalid address, full inbox, blocked sender',
+        'Unsubscribe or opt-out honoured everywhere the message links to',
+        'Time zones: a reminder lands at the intended local hour',
+        'Same notification triggered twice for one event'
+    ]},
+    { tag: 'list', match: /\b(feed|list|dashboard|table|history|activity|timeline|orders)\b/i, cases: [
+        'First visit with zero items',
+        'An item is deleted while someone is viewing it',
+        'Pagination or infinite scroll at the exact end of the list',
+        'Very long item names breaking the layout'
+    ]},
+    { tag: 'scheduling', match: /\b(date|time|schedule|calendar|booking|slot|appointment|deadline|remind)\b/i, cases: [
+        'Time zones between creator and viewer',
+        'Past dates, far-future dates, and leap years',
+        'Two people booking the last slot at the same moment',
+        'Daylight saving changes around a scheduled time'
+    ]},
+    { tag: 'ai', match: /\b(ai|model|chatbot|assistant|generat|llm|summary|summari|recommend)\b/i, cases: [
+        'Model returns nothing, times out, or returns malformed output',
+        'User pastes far more text than the model can read at once',
+        'Output shown while streaming vs after it completes',
+        'What the user sees when the model refuses or gives up'
+    ]}
+];
+
+function exploreCases(description) {
+    const matched = [];
+    let cases = UNIVERSAL.map((c) => ({ text: c.text, cat: c.cat }));
+    for (const f of FEATURE_CASES) {
+        if (f.match.test(description)) {
+            matched.push(f.tag);
+            cases = cases.concat(f.cases.map((t) => ({ text: t, cat: f.tag })));
+        }
+    }
+    const seen = new Set();
+    cases = cases.filter((c) => { const k = c.text.toLowerCase(); if (seen.has(k)) return false; seen.add(k); return true; });
+    return { cases, matched };
+}
+// ===PARSE-END===
+
+(function () {
+    const $ = (id) => document.getElementById(id);
+    const CHOICES = [['considered', 'Considered'], ['na', 'Not applicable'], ['todo', 'Still to test']];
+    let cases = [];
+    let matched = [];
+    let marks = {};
+    let notes = {};
+    let nextId = 1;
+
+    const descEl = $('feature-paste');
+    const btn = $('btn-analyse');
+
+    descEl.addEventListener('input', () => {
+        const len = descEl.value.trim().length;
+        btn.disabled = len < 30;
+        $('paste-hint').classList.toggle('hidden', !(len > 0 && len < 30));
+    });
+
+    btn.addEventListener('click', () => {
+        const r = exploreCases(descEl.value);
+        cases = r.cases.map((c) => ({ id: nextId++, text: c.text, cat: c.cat, included: true }));
+        matched = r.matched;
+        marks = {};
+        notes = {};
+        $('stage-paste').classList.add('hidden');
+        $('stage-review').classList.remove('hidden');
+        renderReview();
+        window.scrollTo(0, 0);
+    });
+
+    $('btn-reset').addEventListener('click', () => {
+        $('stage-review').classList.add('hidden');
+        $('stage-paste').classList.remove('hidden');
+        descEl.value = ''; $('feature-name').value = '';
+        btn.disabled = true;
+        $('paste-hint').classList.add('hidden');
+        cases = []; matched = []; marks = {}; notes = {};
+        window.scrollTo(0, 0);
+    });
+
+    $('btn-add').addEventListener('click', () => {
+        const t = $('new-item').value.trim();
+        if (t.length >= 4) {
+            cases.push({ id: nextId++, text: t, cat: 'added by you', included: true });
+            $('new-item').value = '';
+            renderCases();
+            renderRecord();
+        }
+    });
+
+    $('btn-copy').addEventListener('click', () => {
+        const text = recordText();
+        const done = () => {
+            $('copy-done').classList.remove('hidden');
+            setTimeout(() => $('copy-done').classList.add('hidden'), 2000);
+        };
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(done, () => legacyCopy(text, done));
+        } else {
+            legacyCopy(text, done);
+        }
+    });
+
+    function legacyCopy(text, done) {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } catch (e) {}
+        document.body.removeChild(ta);
+    }
+
+    function el(tag, className, text) {
+        const e = document.createElement(tag);
+        if (className) e.className = className;
+        if (text !== undefined) e.textContent = text;
+        return e;
+    }
+
+    function included() { return cases.filter((c) => c.included); }
+
+    function renderReview() {
+        const inc = included();
+        $('review-title').textContent = $('feature-name').value.trim() || 'Edge Case Explorer';
+        $('review-count').textContent = inc.length + ' cases to consider';
+
+        const mg = $('matched-group');
+        const ml = $('matched-list');
+        ml.innerHTML = '';
+        if (matched.length) {
+            mg.classList.remove('hidden');
+            const c = el('div', 'callout note');
+            c.appendChild(el('span', 'callout-title', 'Feature types matched'));
+            c.appendChild(document.createTextNode(matched.join(', ') + '. Their cases are tagged with the type name below.'));
+            ml.appendChild(c);
+        } else {
+            mg.classList.remove('hidden');
+            const c = el('div', 'callout note');
+            c.appendChild(el('span', 'callout-title', 'No specific feature type matched'));
+            c.appendChild(document.createTextNode('Only universal cases are listed. Add feature-specific cases manually below.'));
+            ml.appendChild(c);
+        }
+
+        renderCases();
+        renderRecord();
+        renderHonesty($('honesty-review'));
+    }
+
+    function renderCases() {
+        const inc = included();
+        $('cases-label').textContent = 'Step 2: edge case checklist (' + inc.length + ')';
+        $('review-count').textContent = inc.length + ' cases to consider';
+        const list = $('case-list');
+        list.innerHTML = '';
+        cases.forEach((c) => {
+            const row = el('div', 'case' + (c.included ? '' : ' off'));
+            const top = el('div', 'case-top');
+            top.appendChild(el('span', 'case-text', c.text));
+            top.appendChild(el('span', 'case-cat', c.cat));
+            row.appendChild(top);
+            const toggle = el('button', 'ghost compact', c.included ? 'Remove' : 'Keep');
+            toggle.addEventListener('click', () => {
+                c.included = !c.included;
+                renderCases();
+                renderRecord();
+            });
+            row.appendChild(toggle);
+            if (c.included) {
+                const choices = el('div', 'choices');
+                CHOICES.forEach(([key, label]) => {
+                    const b = el('button', 'choice' + (marks[c.id] === key ? ' selected' : ''), label);
+                    b.addEventListener('click', () => {
+                        if (marks[c.id] === key) delete marks[c.id];
+                        else marks[c.id] = key;
+                        renderCases();
+                        renderRecord();
+                    });
+                    choices.appendChild(b);
+                });
+                row.appendChild(choices);
+                if (marks[c.id] === 'todo') {
+                    const nl = el('label', null, 'Your note (optional)');
+                    nl.setAttribute('for', 'note-' + c.id);
+                    row.appendChild(nl);
+                    const input = el('input');
+                    input.type = 'text';
+                    input.id = 'note-' + c.id;
+                    input.value = notes[c.id] || '';
+                    input.addEventListener('input', () => { notes[c.id] = input.value; });
+                    row.appendChild(input);
+                }
+            }
+            list.appendChild(row);
+        });
+    }
+
+    function renderRecord() {
+        const inc = included();
+        const marked = inc.filter((c) => marks[c.id]);
+        const unmarked = inc.length - marked.length;
+        $('record-empty').classList.toggle('hidden', marked.length > 0);
+        $('record-body').classList.toggle('hidden', marked.length === 0);
+        if (!marked.length) return;
+        const groups = $('record-groups');
+        groups.innerHTML = '';
+        CHOICES.forEach(([key, label]) => {
+            const rows = inc.filter((c) => marks[c.id] === key);
+            if (!rows.length) return;
+            const g = el('div', 'group');
+            g.appendChild(el('p', 'group-label', label + ' (' + rows.length + ')'));
+            const ul = el('ul');
+            rows.forEach((c) => ul.appendChild(el('li', null, c.text + (notes[c.id] ? ' -- ' + notes[c.id] : ''))));
+            g.appendChild(ul);
+            groups.appendChild(g);
+        });
+        $('record-unmarked').textContent = unmarked > 0 ? unmarked + ' case' + (unmarked === 1 ? '' : 's') + ' unmarked.' : '';
+    }
+
+    function recordText() {
+        const inc = included();
+        const linesOut = [];
+        linesOut.push('Edge Case Explorer record');
+        linesOut.push('Feature: ' + ($('feature-name').value.trim() || 'untitled'));
+        linesOut.push('Matched feature types: ' + (matched.length ? matched.join(', ') : 'none, universal cases only'));
+        CHOICES.forEach(([key, label]) => {
+            const rows = inc.filter((c) => marks[c.id] === key);
+            if (!rows.length) return;
+            linesOut.push('');
+            linesOut.push(label + ' (' + rows.length + ')');
+            rows.forEach((c) => linesOut.push('- ' + c.text + (notes[c.id] ? ' -- ' + notes[c.id] : '')));
+        });
+        linesOut.push('');
+        linesOut.push('Marked by the tester. This record gives no coverage score and no ship verdict.');
+        return linesOut.join('\n');
+    }
+
+    function renderHonesty(mount) {
+        mount.innerHTML = '';
+        mount.appendChild(el('p', 'group-label', 'Honesty'));
+        mount.appendChild(el('h2', null, 'What this tool does not do'));
+        const ul = el('ul');
+        [
+            'It is a thinking aid, not coverage. A fully marked list does not mean the feature is well tested.',
+            'Keyword matching misses feature types it does not know, and can match the wrong one. Remove what does not fit.',
+            'It does not run anything against your product and cannot see your actual screens or flows.',
+            'It never scores your testing and never says whether the feature is ready.',
+            'The tool sends nothing you type anywhere. What you paste is processed on your device and disappears when you leave.'
+        ].forEach((t) => ul.appendChild(el('li', null, t)));
+        mount.appendChild(ul);
+    }
+
+    renderHonesty($('honesty-paste'));
+})();
+</script>
+</body>
+</html>
