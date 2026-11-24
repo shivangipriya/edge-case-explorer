@@ -2,6 +2,8 @@
 
 Describe a feature you are building or testing. Get a structured checklist of edge cases worth thinking about: universal ones, plus cases matched to the kind of feature it is. Mark what you have considered and copy the record.
 
+**Try it:** https://shivangipriya.github.io/edge-case-explorer/ - runs in your browser, no signup.
+
 ## Why this exists
 
 Testing the happy path is the easy part to remember; the edges are what a checklist is for. Testers carry these lists in their heads; this tool writes the list down so the thinking can start earlier and be shared.
